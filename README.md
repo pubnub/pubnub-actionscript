@@ -3,7 +3,7 @@
 This is a brand new rewrite of the Flash SDK with 
 a massive improvement on performance and reliability.
 
-### Full Simple Example
+### Simple Example
 
 `Main.as` file example follows:
 
@@ -36,9 +36,6 @@ package {
 }
 ```
 
-More details as follows:
-
-
 ### Import PubNub Client
 
 ```javascript
@@ -46,6 +43,9 @@ import com.pubnub.PubNub;
 ```
 
 ### Full Init PubNub Client
+
+To see full usage example, visit the `Main.as` file.
+
 ```javascript
 // Setup
 var pubnub:PubNub = new PubNub({
@@ -53,7 +53,7 @@ var pubnub:PubNub = new PubNub({
     ssl           : false,               // SSL ?
     cipher_key    : 'mypass',            // AES256 Crypto Password
     message       : message,             // onMessage Receive
-    idle          : idle,                // onPing Idle Message
+    idle          : idle,                // onPing Idle
     connect       : connect,             // onConnect
     reconnect     : reconnect,           // onReconnect
     disconnect    : disconnect           // onDisconnect
@@ -63,5 +63,10 @@ var pubnub:PubNub = new PubNub({
 ### Add Channels
 ```javascript
 pubnub.subscribe({ channels : [ 'b', 'c' ] });
+```
+
+### Remove Channels
+```javascript
+pubnub.unsubscribe({ channels : [ 'b', 'c' ] });
 ```
 
