@@ -5,8 +5,6 @@ a massive improvement on performance and reliability.
 
 ### Simple Example
 
-`Main.as` file example follows:
-
 ```javascript
 package {
     import flash.display.Sprite;

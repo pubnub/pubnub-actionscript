@@ -188,6 +188,7 @@ package com.pubnub {
         // Upstream Data Connection
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function subscribe_request(url:String):void {
+            trace('url:',url);
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout = subscribe_timeout;
             try { loader.load(request); }
