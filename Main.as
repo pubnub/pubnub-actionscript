@@ -4,20 +4,18 @@ package {
 
     public class Main extends Sprite {
         public function Main() {
-            
-            trace(PubNub.decrypt( 'bt', 'C37ACFXvxekkH322eAaUqg=='));
 
             // Setup
             var pubnub:PubNub = new PubNub({
                 subscribe_key : "demo",
-                origin        : "pubsub.pubnub.com",
-                ssl           : false,
-                cipher_key    : 'bt',
-                message       : message,
-                idle          : idle,
-                connect       : connect,
-                reconnect     : reconnect,
-                disconnect    : disconnect
+                origin        : "pubsub.pubnub.com", // GeoDNS Global PubNub
+                ssl           : false,               // SSL ?
+                cipher_key    : 'bt',                // AES256 Crypto Password
+                message       : message,             // onMessage Receive
+                idle          : idle,                // onPing Idle Message
+                connect       : connect,             // onConnect
+                reconnect     : reconnect,           // onReconnect
+                disconnect    : disconnect           // onDisconnect
             });
 
             // Add Channels
