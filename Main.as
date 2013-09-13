@@ -1,34 +1,18 @@
-
-
-
-// TODO - 
-// TODO - 
-// TODO - random origin
-// TODO - 
-// TODO - 
-// TODO - 
-// TODO - 
-// TODO - 
-// TODO - 
-// TODO - 
-
-
-
-
-
 package {
     import com.pubnub.PubNub;
     import flash.display.Sprite;
     import flash.utils.setTimeout;
 
     public class Main extends Sprite {
+        private var pubnub:PubNub;
+
         public function Main() {
 
             // Setup
-            var pubnub:PubNub = new PubNub({
+            pubnub = new PubNub({
                 subscribe_key : "demo",
+                drift_check   : 5000,        // Re-calculate Time Drift
                 ssl           : false,       // SSL
-                cipher_key    : 'bt',        // AES256 Crypto Password
                 message       : message,     // onMessage Receive
                 idle          : idle,        // onPing Idle Message
                 connect       : connect,     // onConnect
@@ -37,7 +21,7 @@ package {
             });
 
             // Add Channels
-            pubnub.subscribe({ channels : [ 'b', 'c' ] });
+            pubnub.subscribe({ channels : [ 'a', 'b', 'c' ] });
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -47,10 +31,10 @@ package {
             message:Object,
             channel:String,
             timetoken:String,
-            latency:Number
+            age:Number
         ):void {
             trace('message:',message);
-            trace('latency:',latency);
+            trace('age:',age);
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -58,7 +42,30 @@ package {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function connect():void {
             trace('connected');
-            pubnub.publish({ channel : 'b' });
+            trace('publishing...');
+            pubnub.publish({
+                channel  : 'b',
+                message  : 'Hello!',
+                response : function(r:Object):void {
+                    trace('publish:',r);
+                    trace('unsubscribing soon...');
+                    setTimeout( unsub, 1000 );
+                }
+            });
+
+            // Unsubscribing
+            function unsub():void {
+                trace('Unsubscribed!');
+                pubnub.unsubscribe({ channels : [ 'a', 'b', 'c' ] });
+                setTimeout( sub, 2500 );
+            }
+
+            // Subscribing
+            function sub():void {
+                trace('Subscribed!');
+                pubnub.subscribe({ channels : [ 'a', 'b', 'c' ] });
+                //setTimeout( unsub, 2500 );
+            }
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

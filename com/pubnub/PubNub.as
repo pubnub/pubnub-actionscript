@@ -5,6 +5,7 @@ package com.pubnub {
     import flash.utils.Timer;
     import flash.utils.setTimeout;
     import flash.net.URLStream;
+    import flash.net.URLLoader;
     import flash.net.URLRequest;
     import flash.utils.ByteArray;
 
@@ -18,6 +19,7 @@ package com.pubnub {
 
     public class PubNub {
         private var subscribe_timeout:Number;
+        private var drift_check_rate:Number;
         private var time_drift:Number;
         private var loader:URLStream;
         private var timetoken:String;
@@ -43,12 +45,13 @@ package com.pubnub {
             loader            = new URLStream();
             publish_key       = settings['publish_key']   || "demo";
             subscribe_key     = settings['subscribe_key'] || "demo";
-            cipher_key        = settings['cipher_key']    || false;
-            origin            = settings['origin']        || false;
+            cipher_key        = settings['cipher_key']    || "";
+            origin            = settings['origin']        || "";
+            drift_check_rate  = settings['drift_check']   || 60000;
             ssl               = settings['ssl']           || false;
             connected         = false;
             disconnected      = false;
-            channels          = {'_':'_'};
+            channels          = {};
             callbacks         = {};
             timetoken         = "0";
             resume_time       = "0";
@@ -61,9 +64,12 @@ package com.pubnub {
             callbacks['reconnect']  = settings['reconnect'];
             callbacks['disconnect'] = settings['disconnect'];
 
+            // MXing On
+            add_channels(["_"]);
+
             // Detect Local Clock Drift
             detect_time_detla();
-            var timer:Timer = new Timer(5000);
+            var timer:Timer = new Timer(drift_check_rate);
             timer.addEventListener(
                 TimerEvent.TIMER,
                 function(event:TimerEvent):void { detect_time_detla(); }
@@ -71,18 +77,23 @@ package com.pubnub {
             timer.start();
 
             // Event Handles for Inboud Messages
-            loader.addEventListener( Event.COMPLETE,        received );
-            loader.addEventListener( IOErrorEvent.IO_ERROR, error    );
-            loader.addEventListener( Event.CLOSE,           error    );
+            loader.addEventListener( Event.COMPLETE,        subreceived );
+            loader.addEventListener( IOErrorEvent.IO_ERROR, suberror    );
+            loader.addEventListener( Event.CLOSE,           suberror    );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Subscribe
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function subscribe(uargs:Object):void {
-            var args:Object = uargs       || {};
+            var args:Object = uargs            || {}
+            ,   chans:Array = args['channels'] || [];
+
             timetoken = args['timetoken'] || "0";
-            add_channels(args['channels'] || []);
+            add_channels(chans);
+
+            // Reset if Adding More Channels
+            if (chans.length > 0 && loader.connected) loader.close();
 
             // Begin Stream
             subscribe_request([
@@ -97,13 +108,23 @@ package com.pubnub {
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // UnSubscribe
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        public function unsubscribe(uargs:Object):void {
+            var args:Object = uargs          || {};
+            remove_channels(args['channels'] || []);
+            if (loader.connected) loader.close();
+            setTimeout( subscribe, 100, {} );
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Publish
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function publish(uargs:Object):void {
-            var callback = uargs['response'] || function():void{}
-            ,   channel  = uargs['channel']  || "_"
-            ,   message  = JSON.stringify(uargs['message'] || "_")
-            ,   url      = [
+            var callback:Function = uargs['response'] || function():void{}
+            ,   channel:String    = uargs['channel']  || "_"
+            ,   message:String    = JSON.stringify(uargs['message'] || "_")
+            ,   url:String        = [
                     ssl ? 'https:/' : 'http:/',
                     get_origin(),
                     'publish',
@@ -112,7 +133,9 @@ package com.pubnub {
                     '0',
                     channel,
                     '0',
-                    cipher_key ? encrypt( cipher_key, message ) : message
+                    cipher_key ?
+                        '"'+encrypt( cipher_key, message )+'"' :
+                        message
             ].join('/');
 
             // Publish Data
@@ -132,7 +155,21 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function add_channels(chans:Array):void {
             for (var chan:Number = 0; chans.length > chan; chan++) {
-                channels[chans[chan]] = chans[chan];
+                channels[chans[chan]] = {
+                    channel   : chans[chan],
+                    connected : true
+                };
+            }
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Remove to Channel Collection
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        private function remove_channels(chans:Array):void {
+            for (var chan:Number = 0; chans.length > chan; chan++) {
+                var ch:String = chans[chan];
+                if (!(ch in channels)) continue;
+                channels[ch].connected = false;
             }
         }
 
@@ -141,7 +178,9 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function get_channels():String {
             var chans:Array = [];
-            for (var chan:String in channels) chans.push(chan);
+            for (var chan:String in channels) {
+                if (channels[chan]['connected']) chans.push(chan);
+            }
             return chans.sort().join(',');
         }
 
@@ -152,36 +191,32 @@ package com.pubnub {
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout = subscribe_timeout;
             try { loader.load(request); }
-            catch(e:Error) { error(e as Object); }
+            catch(e:Error) { suberror(e as Object); }
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Data Received as Downstream
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function received(event:Event):void {
+        private function subreceived(event:Event):void {
             var loader:URLStream = URLStream(event.target);
 
             try {
-                var data:String = loader.data;
-                process(JSON.parse(data) as Array);
+                var data:String = loader.readUTFBytes(loader.bytesAvailable);
+                subscribe_process(JSON.parse(data) as Array);
             }
             catch(e:Error) {
-                error(e as Object);
+                suberror(e as Object);
             }
-            // TODO (add a basic time reqeust for detecting tempaorary errors)
-            // TODO (add a basic time reqeust for detecting tempaorary errors)
-            // TODO (add a basic time reqeust for detecting tempaorary errors)
-            // TODO (add a basic time reqeust for detecting tempaorary errors)
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Process Payload
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function process(data:Array):void {
+        private function subscribe_process(data:Array):void {
             var messages:Array = data[0];
             var tt:String      = data[1];
             var chans:Array    = (data[2] || "").split(/,/);
-            var latency:Number = detect_latency(Number(tt));
+            var age:Number     = detect_age(Number(tt));
 
             // Connect Callback
             if (!connected) {
@@ -197,8 +232,13 @@ package com.pubnub {
 
             // Process User Callback Per Message
             for (var msg:Number = 0; messages.length > msg; msg++) {
-                var message:Object = messages[msg];
+                var message:Object = messages[msg]
+                ,   ch             = chans[msg];
 
+                // Continue non-subscriptions
+                if (!(ch in channels) || !channels[ch].connected) continue;
+
+                // AES256 Enabled?
                 if (cipher_key) {
                     try {
                         message = decrypt(
@@ -212,12 +252,8 @@ package com.pubnub {
                     }
                 }
 
-                callbacks['message'](
-                    message as Object,
-                    chans[msg],
-                    tt,
-                    latency
-                );
+                // Issue Message to User Callback
+                callbacks['message']( message as Object, ch, tt, age );
             }
 
             // Idle Callback
@@ -237,7 +273,7 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Something is Not Right
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function error(event:Object):void {
+        private function suberror(event:Object):void {
             var resume:Boolean = true;
 
             // Disconnect Callback
@@ -255,7 +291,7 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Detect Age of Message
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function detect_latency(tt:Number):Number {
+        private function detect_age(tt:Number):Number {
             var adjusted_time:Number = (new Date()).time - time_drift;
             return adjusted_time - tt / 10000;
         }
@@ -269,11 +305,11 @@ package com.pubnub {
             function calculate(data:Object):void {
                 if (!data) return;
 
-                var time:Number    = data[0]
-                ,   ptime:Number   = time / 10000
-                ,   latency:Number = ((new Date()).time - stime) / 2;
+                var time:Number  = data[0]
+                ,   ptime:Number = time / 10000
+                ,   age:Number   = ((new Date()).time - stime) / 2;
 
-                time_drift = (new Date()).time - (ptime + latency);
+                time_drift = (new Date()).time - (ptime + age);
             }
         }
 
@@ -291,8 +327,8 @@ package com.pubnub {
             loader.addEventListener( Event.CLOSE,           basic_error    );
 
             // Try Request
-            try { loader.load(request); }
-            catch(e:Error) { error(e as Object); }
+            try            { loader.load(request); }
+            catch(e:Error) { basic_error(e as Object);   }
 
             function basic_received(event:Event):void {
                 var loader:URLLoader = URLLoader(event.target);
@@ -301,11 +337,11 @@ package com.pubnub {
                     callback(JSON.parse(data) as Array);
                 }
                 catch(e:Error) {
-                    basic_error(e as Event);
+                    basic_error(e as Object);
                 }
             }
 
-            function basic_error(event:Event):void {
+            function basic_error(event:Object):void {
                 callback(false);
             }
         }

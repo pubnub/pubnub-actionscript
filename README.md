@@ -20,12 +20,12 @@ package {
                 message:Object,
                 channel:String,
                 timetoken:String,
-                latency:Number
+                age:Number
             ):void {
                 trace('message:',message);     // Message Payload
                 trace('channel:',channel);     // Channel Source
                 trace('timetoken:',timetoken); // PubNub TimeToken
-                trace('latency:',latency);     // +-2 Seconds Accuracy
+                trace('age:',age);             // Aproxmate Age
             } });
 
             // Add Channels
@@ -45,7 +45,7 @@ More details as follows:
 import com.pubnub.PubNub;
 ```
 
-### Fully Initalize PubNub Client
+### Full Init PubNub Client
 ```javascript
 // Setup
 var pubnub:PubNub = new PubNub({
