@@ -1,6 +1,25 @@
+
+
+
+// TODO - 
+// TODO - 
+// TODO - random origin
+// TODO - 
+// TODO - 
+// TODO - 
+// TODO - 
+// TODO - 
+// TODO - 
+// TODO - 
+
+
+
+
+
 package {
-    import flash.display.Sprite;
     import com.pubnub.PubNub;
+    import flash.display.Sprite;
+    import flash.utils.setTimeout;
 
     public class Main extends Sprite {
         public function Main() {
@@ -8,20 +27,17 @@ package {
             // Setup
             var pubnub:PubNub = new PubNub({
                 subscribe_key : "demo",
-                origin        : "pubsub.pubnub.com", // GeoDNS Global PubNub
-                ssl           : false,               // SSL ?
-                cipher_key    : 'bt',                // AES256 Crypto Password
-                message       : message,             // onMessage Receive
-                idle          : idle,                // onPing Idle Message
-                connect       : connect,             // onConnect
-                reconnect     : reconnect,           // onReconnect
-                disconnect    : disconnect           // onDisconnect
+                ssl           : false,       // SSL
+                cipher_key    : 'bt',        // AES256 Crypto Password
+                message       : message,     // onMessage Receive
+                idle          : idle,        // onPing Idle Message
+                connect       : connect,     // onConnect
+                reconnect     : reconnect,   // onReconnect
+                disconnect    : disconnect   // onDisconnect
             });
 
             // Add Channels
-            pubnub.subscribe({
-                channels : [ 'b', 'c' ]
-            });
+            pubnub.subscribe({ channels : [ 'b', 'c' ] });
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -42,6 +58,7 @@ package {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function connect():void {
             trace('connected');
+            pubnub.publish({ channel : 'b' });
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

@@ -4,7 +4,7 @@ package com.pubnub {
     import flash.events.TimerEvent;
     import flash.utils.Timer;
     import flash.utils.setTimeout;
-    import flash.net.URLLoader;
+    import flash.net.URLStream;
     import flash.net.URLRequest;
     import flash.utils.ByteArray;
 
@@ -19,13 +19,14 @@ package com.pubnub {
     public class PubNub {
         private var subscribe_timeout:Number;
         private var time_drift:Number;
-        private var loader:URLLoader;
+        private var loader:URLStream;
         private var timetoken:String;
         private var resume_time:String;
         private var channels:Object;
         private var ssl:Boolean;
         private var origin:String;
         private var cipher_key:String;
+        private var publish_key:String;
         private var subscribe_key:String;
         private var callbacks:Object;
         private var connected:Boolean;
@@ -39,11 +40,12 @@ package com.pubnub {
         // Initalize
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function PubNub(settings:Object) {
-            loader            = new URLLoader();
-            subscribe_key     = settings['subscribe_key'];
-            cipher_key        = settings['cipher_key'];
-            origin            = settings['origin'];
-            ssl               = settings['ssl'];
+            loader            = new URLStream();
+            publish_key       = settings['publish_key']   || "demo";
+            subscribe_key     = settings['subscribe_key'] || "demo";
+            cipher_key        = settings['cipher_key']    || false;
+            origin            = settings['origin']        || false;
+            ssl               = settings['ssl']           || false;
             connected         = false;
             disconnected      = false;
             channels          = {'_':'_'};
@@ -75,61 +77,54 @@ package com.pubnub {
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Basic URL Request
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function basic_request( url:String, callback:Function ):void {
-            var loader:URLLoader   = new URLLoader()
-            var request:URLRequest = new URLRequest(url);
-            request.idleTimeout    = 10000;
-
-            // Event Handles
-            loader.addEventListener( Event.COMPLETE,        basic_received );
-            loader.addEventListener( IOErrorEvent.IO_ERROR, basic_error    );
-            loader.addEventListener( Event.CLOSE,           basic_error    );
-
-            // Try Request
-            try { loader.load(request); }
-            catch(e:Error) { error(e as Object); }
-
-            function basic_received(event:Event):void {
-                var loader:URLLoader = URLLoader(event.target);
-                try {
-                    var data:String = loader.data;
-                    callback(JSON.parse(data) as Array);
-                }
-                catch(e:Error) {
-                    basic_error(e as Event);
-                }
-            }
-
-            function basic_error(event:Event):void {
-                callback(false);
-            }
-        }
-
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Create list of Channels and Subscribe to Data Feed
+        // Subscribe
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function subscribe(uargs:Object):void {
             var args:Object = uargs       || {};
             timetoken = args['timetoken'] || "0";
             add_channels(args['channels'] || []);
-            request(make_url());
-        }
 
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Make Upstream Req String
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function make_url():String {
-            return [
+            // Begin Stream
+            subscribe_request([
                 ssl ? 'https:/' : 'http:/',
-                origin,
+                get_origin(),
                 'subscribe',
                 subscribe_key,
                 get_channels(),
                 '0',
                 timetoken
+            ].join('/'));
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Publish
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        public function publish(uargs:Object):void {
+            var callback = uargs['response'] || function():void{}
+            ,   channel  = uargs['channel']  || "_"
+            ,   message  = JSON.stringify(uargs['message'] || "_")
+            ,   url      = [
+                    ssl ? 'https:/' : 'http:/',
+                    get_origin(),
+                    'publish',
+                    publish_key,
+                    subscribe_key,
+                    '0',
+                    channel,
+                    '0',
+                    cipher_key ? encrypt( cipher_key, message ) : message
             ].join('/');
+
+            // Publish Data
+            basic_request( url, callback );
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Get Origin
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        private function get_origin():String {
+            if (origin) return origin;
+            return getUID().split('-')[0] + '.pubnub.com';
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -142,7 +137,7 @@ package com.pubnub {
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Upstream Data Connection
+        // Create list of Channels and Subscribe to Data Feed
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function get_channels():String {
             var chans:Array = [];
@@ -153,7 +148,7 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Upstream Data Connection
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function request(url:String):void {
+        private function subscribe_request(url:String):void {
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout = subscribe_timeout;
             try { loader.load(request); }
@@ -164,7 +159,7 @@ package com.pubnub {
         // Data Received as Downstream
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function received(event:Event):void {
-            var loader:URLLoader = URLLoader(event.target);
+            var loader:URLStream = URLStream(event.target);
 
             try {
                 var data:String = loader.data;
@@ -283,6 +278,39 @@ package com.pubnub {
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Basic URL Request
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        public function basic_request( url:String, callback:Function ):void {
+            var loader:URLLoader   = new URLLoader()
+            var request:URLRequest = new URLRequest(url);
+            request.idleTimeout    = 10000;
+
+            // Event Handles
+            loader.addEventListener( Event.COMPLETE,        basic_received );
+            loader.addEventListener( IOErrorEvent.IO_ERROR, basic_error    );
+            loader.addEventListener( Event.CLOSE,           basic_error    );
+
+            // Try Request
+            try { loader.load(request); }
+            catch(e:Error) { error(e as Object); }
+
+            function basic_received(event:Event):void {
+                var loader:URLLoader = URLLoader(event.target);
+                try {
+                    var data:String = loader.data;
+                    callback(JSON.parse(data) as Array);
+                }
+                catch(e:Error) {
+                    basic_error(e as Event);
+                }
+            }
+
+            function basic_error(event:Event):void {
+                callback(false);
+            }
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // UUID
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public static function getUID():String {
@@ -377,6 +405,5 @@ package com.pubnub {
             ba.writeUTFBytes(s);
             return MD5.hashBinary(ba);
         }
-
     }
 }

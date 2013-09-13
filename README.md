@@ -14,29 +14,23 @@ package {
 
     public class Main extends Sprite {
         public function Main() {
+
             // Setup
-            var pubnub:PubNub = new PubNub({
-                subscribe_key : "demo",  // Subscribe Key
-                message       : message
-            });
+            var pubnub:PubNub = new PubNub({ message : function message(
+                message:Object,
+                channel:String,
+                timetoken:String,
+                latency:Number
+            ):void {
+                trace('message:',message);     // Message Payload
+                trace('channel:',channel);     // Channel Source
+                trace('timetoken:',timetoken); // PubNub TimeToken
+                trace('latency:',latency);     // +-2 Seconds Accuracy
+            } });
 
             // Add Channels
-            pubnub.subscribe({
-                channels : [ 'a', 'b', 'c' ]
-            });
-        }
+            pubnub.subscribe({ channels : [ 'a', 'b', 'c' ] });
 
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Receive Each Message
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function message(
-            message:Object,
-            channel:String,
-            timetoken:String,
-            latency:Number
-        ):void {
-            trace('message:',message);
-            trace('latency:',latency);
         }
     }
 }
@@ -56,7 +50,6 @@ import com.pubnub.PubNub;
 // Setup
 var pubnub:PubNub = new PubNub({
     subscribe_key : "demo",              // Subscribe Key
-    origin        : "pubsub.pubnub.com", // GeoDNS Global PubNub
     ssl           : false,               // SSL ?
     cipher_key    : 'mypass',            // AES256 Crypto Password
     message       : message,             // onMessage Receive
