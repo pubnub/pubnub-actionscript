@@ -5,6 +5,8 @@ a massive improvement on performance and reliability.
 
 ### Full Simple Example
 
+`Main.as` file example follows:
+
 ```javascript
 package {
     import flash.display.Sprite;
@@ -14,9 +16,7 @@ package {
         public function Main() {
             // Setup
             var pubnub:PubNub = new PubNub({
-                subscribe_key : "demo",
-                origin        : "pubsub.pubnub.com", // GeoDNS Global PubNub
-                ssl           : false,               // SSL ?
+                subscribe_key : "demo",  // Subscribe Key
                 message       : message
             });
 
@@ -26,9 +26,9 @@ package {
             });
         }
 
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Receive Each Message
-        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function message(
             message:Object,
             channel:String,
@@ -55,7 +55,7 @@ import com.pubnub.PubNub;
 ```javascript
 // Setup
 var pubnub:PubNub = new PubNub({
-    subscribe_key : "demo",
+    subscribe_key : "demo",              // Subscribe Key
     origin        : "pubsub.pubnub.com", // GeoDNS Global PubNub
     ssl           : false,               // SSL ?
     cipher_key    : 'mypass',            // AES256 Crypto Password
