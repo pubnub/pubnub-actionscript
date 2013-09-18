@@ -69,7 +69,7 @@ package {
         // Disconnected (No Data)
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function disconnect(event:Object):Boolean {
-            // trace( 'disconnected', event );
+            trace( 'disconnected', event );
 
             // Resume Connection by Returning - TRUE -
             // By returning false, you can resume by issuing

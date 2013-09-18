@@ -21,7 +21,16 @@ package com.pubnub {
             deduplicates = {}
             connections  = [];
 
-            connect( "",                        settings ); // Geo1
+            // First Geo
+            connect( "", settings );
+
+            // Prevent Multi-callbacks
+            settings['idle']       = function():void{};
+            settings['connect']    = function():void{};
+            settings['disconnect'] = function():void{};
+            settings['reconnect']  = function():void{};
+
+            // Connect to a few other Geo's
             connect( origin,                    settings ); // Geo2
             connect( "pubsub-apac.pubnub.com",  settings ); // Geo3
             connect( "pubsub-emea.pubnub.com",  settings ); // Geo4
