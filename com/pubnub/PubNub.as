@@ -188,7 +188,7 @@ package com.pubnub {
         // Upstream Data Connection
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function subscribe_request(url:String):void {
-            trace('url:',url);
+            //trace('url:',url);
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout = subscribe_timeout;
             try { loader.load(request); }
@@ -234,7 +234,7 @@ package com.pubnub {
             // Process User Callback Per Message
             for (var msg:Number = 0; messages.length > msg; msg++) {
                 var message:Object = messages[msg]
-                ,   ch             = chans[msg];
+                ,   ch:String      = chans[msg];
 
                 // Continue non-subscriptions
                 if (!(ch in channels) || !channels[ch].connected) continue;
@@ -308,7 +308,7 @@ package com.pubnub {
 
                 var time:Number  = data[0]
                 ,   ptime:Number = time / 10000
-                ,   age:Number   = ((new Date()).time - stime) / 2;
+                ,   age:Number   = ((new Date()).time - stime) / 4;
 
                 time_drift = (new Date()).time - (ptime + age);
             }

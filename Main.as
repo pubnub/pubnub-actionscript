@@ -1,27 +1,39 @@
 package {
-    import com.pubnub.PubNub;
+    import com.pubnub.PubNubMulti;
     import flash.display.Sprite;
     import flash.utils.setTimeout;
 
     public class Main extends Sprite {
-        private var pubnub:PubNub;
+        private var pubnub:PubNubMulti;
 
         public function Main() {
 
             // Setup
-            pubnub = new PubNub({
-                subscribe_key : "demo",
-                drift_check   : 5000,        // Re-calculate Time Drift
-                ssl           : false,       // SSL
-                message       : message,     // onMessage Receive
-                idle          : idle,        // onPing Idle Message
-                connect       : connect,     // onConnect
-                reconnect     : reconnect,   // onReconnect
-                disconnect    : disconnect   // onDisconnect
+            pubnub = new PubNubMulti({
+                duplicate_key : "message_id", // Required for PubNubMulti
+                subscribe_key : "demo",       // Subscribe Key
+                drift_check   : 5000,         // Re-calculate Time Drift
+                ssl           : false,        // SSL
+                message       : message,      // onMessage Receive
+                idle          : idle,         // onPing Idle Message
+                connect       : connect,      // onConnect
+                reconnect     : reconnect,    // onReconnect
+                disconnect    : disconnect    // onDisconnect
             });
 
             // Add Channels
-            pubnub.subscribe({ channels : [ 'a', 'b', 'c' ] });
+            pubnub.subscribe({ channels : [ 'b', 'c' ] });
+
+            // Publish Loop
+            var pubcount:Number = 1;
+            function pub():void {
+                setTimeout( pub, 1000 );
+                pubnub.publish({ channel : 'b', message : {
+                    number : pubcount++,
+                    time   : (new Date()).time
+                }});
+            }
+            pub();
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -31,10 +43,12 @@ package {
             message:Object,
             channel:String,
             timetoken:String,
-            age:Number
+            approx_age:Number
         ):void {
-            trace('message:',message);
-            trace('age:',age);
+            var age:Number = ((new Date()).time - message.data.time)/2;
+            trace('message:',JSON.stringify(message));
+            trace('age (ms):',age);
+            trace('approx_age (ms):',approx_age);
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -42,44 +56,20 @@ package {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function connect():void {
             trace('connected');
-            trace('publishing...');
-            pubnub.publish({
-                channel  : 'b',
-                message  : 'Hello!',
-                response : function(r:Object):void {
-                    trace('publish:',r);
-                    trace('unsubscribing soon...');
-                    setTimeout( unsub, 1000 );
-                }
-            });
-
-            // Unsubscribing
-            function unsub():void {
-                trace('Unsubscribed!');
-                pubnub.unsubscribe({ channels : [ 'a', 'b', 'c' ] });
-                setTimeout( sub, 2500 );
-            }
-
-            // Subscribing
-            function sub():void {
-                trace('Subscribed!');
-                pubnub.subscribe({ channels : [ 'a', 'b', 'c' ] });
-                //setTimeout( unsub, 2500 );
-            }
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Network Timetoken (Good) Sent by PubNub Upstream
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function idle(timetoken:String):void {
-            trace( 'idle: ', timetoken );
+            // trace( 'idle: ', timetoken );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Disconnected (No Data)
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function disconnect(event:Object):Boolean {
-            trace( 'disconnected', event );
+            // trace( 'disconnected', event );
 
             // Resume Connection by Returning - TRUE -
             // By returning false, you can resume by issuing
@@ -91,7 +81,7 @@ package {
         // Reconnected (And we are Back!)
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function reconnect():void {
-            trace('reconnected');
+            // trace('reconnected');
         }
     }
 }
