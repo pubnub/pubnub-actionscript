@@ -1,4 +1,4 @@
-# PubNub Flash SDK
+# PubNub Adobe Air ActionScript 3 SDK
 
 This is a brand new rewrite of the Flash SDK with 
 a massive improvement on performance and reliability.
