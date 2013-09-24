@@ -14,6 +14,7 @@ package {
                 subscribe_key : "demo",       // Subscribe Key
                 drift_check   : 9000,         // Re-calculate Time Drift
                 ssl           : false,        // SSL
+                analytics     : 'analytics',  // Channel to Save Analtyics on
                 activity      : activity,     // onAny Activity
                 message       : message,      // onMessage Receive
                 idle          : idle,         // onPing Idle Message

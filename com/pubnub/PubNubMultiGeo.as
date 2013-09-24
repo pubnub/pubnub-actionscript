@@ -3,16 +3,18 @@ package com.pubnub {
     import flash.utils.setTimeout;
 
     public class PubNubMultiGeo {
-        private var analytics_sync:PubNub;  // Tracking Reporter
-        private var analytics:Object;       // Tracking Data Object
-        private var connections:Array;      // Connection Pool to Geo Regions
-        private var deduplicates:Object;    // Deduplication Buffer
-        private var deduplicates_la:Array;  // Deduplication Buffer Laundry
-        private var duplicate_key:String;   // Inique Message ID
-        private var origin:String;          // Primary Origin
-        private var msg_callback:Function;  // User Callback for Messages
+        private var analytics:Object;          // Tracking Data Object
+        private var analytics_sync:PubNub;     // Tracking Reporter
+        private var analytics_channel:String;  // Channel to Save Analytics on
+        private var analytics_session:String;  // Session ID for Tracking
+        private var connections:Array;         // Connection Pool to Geo Regions
+        private var deduplicates:Object;       // Deduplication Buffer
+        private var deduplicates_la:Array;     // Deduplication Buffer Laundry
+        private var duplicate_key:String;      // Inique Message ID
+        private var origin:String;             // Primary Origin
+        private var msg_callback:Function;     // User Callback for Messages
 
-        private static const DUP_KEY_MAX_AGE:Number = 30 * 60 * 1000;
+        private static const DUP_KEY_MAX_AGE:Number = 30 * 60 * 1000; // 30min
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Init
@@ -24,9 +26,14 @@ package com.pubnub {
 
             settings['message'] = multi_message;
 
+            analytics       = {};
             deduplicates    = {};
             deduplicates_la = [];
             connections     = [];
+
+            // Set Analytics Channel to Track Delivery Metrics
+            analytics_channel = settings['analytics'] || 'analytics';
+            analytics_session = PubNub.getUID();
 
             // First Geo
             connect( "", settings );
@@ -55,45 +62,59 @@ package com.pubnub {
         }
  
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        // Setup and Track Analaytics
+        // Track Analaytics Save
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function setup_tracking():void {
-            // on message receive, trigger a timeer to fire to push the
-            // -
-            // TODO - per signal id "duplicate_key" store following
-            // TODO - local_time_first arrived mesage
-            // TODO - last_arrived arrived mesage
-            // TODO - Local Time.
-            // TODO - Drift Time.
-            // TODO - TimeToken TX.
-            // TODO - TimeToken TR.
-            // TODO - Data Center Origin.
-            // TODO - Aggregated Total of Messages Received and Expected.
-            // TODO - List of Aprox. Ages.
-            // TODO - Duplicate ID Val ("signal_id").
-            // TODO - 
-            // TODO - 
-            // TODO - 
-            // TODO - 
-            // TODO - 
+        private function tracking_save(message_id:String):void {
+            // Save Analytics
+            analytics_sync.publish({
+                channel : analytics_channel,
+                message : analytics[message_id]
+            });
 
+            // trace( 'transmitting: ', JSON.stringify(analytics[message_id]));
+
+            // Cleanup in a bit
+            setTimeout( function():void {
+                delete analytics[message_id];
+            }, 10 * 1000 );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Track Analaytics
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function track(data:Object):void {
-            var message    = data['message']
-            ,   message_id = message[duplicate_key];
+            var message:Object    = data['message']
+            ,   message_id:String = message[duplicate_key];
 
-            /*
-            analytics['46573654'].local_time = 13467768544;
-                 : {
-                    local_time : now(),
-                    drift      : analytics_sync
-                }
-            };
-            */
+            // TODO - TimeToken TR.
+            // TODO - Data Center Origin.
+
+            // Unable to track if no MessageID
+            if (!message_id) return;
+
+            // Init MessageID Tracking
+            if (!(message_id in analytics)) {
+                analytics[message_id]                     = {};
+                analytics[message_id].ages                = [];
+                //analytics[message_id].origins             = [];
+
+                analytics[message_id].local_time = now();
+                analytics[message_id].message_id = message_id;
+                analytics[message_id].message_count = 0;
+                analytics[message_id].time_drift = analytics_sync.time_drift;
+                analytics[message_id].session = analytics_session;
+                analytics[message_id].timetoken_tx = data['timetoken'];
+                analytics[message_id].channel = data['channel'];
+
+                // Set Timer for Tracking to Transmit
+                setTimeout( tracking_save, 10 * 1000, message_id );
+            }
+
+            // Begin Tracking Metrics for Message
+            analytics[message_id].message_count++;
+            analytics[message_id].ages.push(data['age']);
+            analytics[message_id].ages.sort();
+            //analytics[message_id].origins.push();
         }
  
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -113,6 +134,15 @@ package com.pubnub {
             timetoken:String,
             age:Number
         ):void {
+            // Tracking Analtyics and Deliverability Metrics
+            track({
+                message   : message,
+                channel   : channel,
+                timetoken : timetoken,
+                age       : age
+            });
+
+            // Deduplication
             var message_id:String = message[duplicate_key];
             if (message_id in deduplicates) return;
 
@@ -140,7 +170,7 @@ package com.pubnub {
                 deduplicates_la.length &&
                 deduplicates_la[0].time + max_age < now()
             ) {
-                trace( 'cleaining: ', deduplicates_la[0].message_id );
+                // trace( 'cleaining: ', deduplicates_la[0].message_id );
                 delete deduplicates[deduplicates_la.shift().message_id];
             }
         }
