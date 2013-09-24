@@ -1,19 +1,20 @@
 package {
-    import com.pubnub.PubNubMulti;
+    import com.pubnub.PubNubMultiGeo;
     import flash.display.Sprite;
     import flash.utils.setTimeout;
 
     public class Main extends Sprite {
-        private var pubnub:PubNubMulti;
+        private var pubnub:PubNubMultiGeo;
 
         public function Main() {
 
             // Setup
-            pubnub = new PubNubMulti({
-                duplicate_key : "message_id", // Required for PubNubMulti
+            pubnub = new PubNubMultiGeo({
+                duplicate_key : "message_id", // Required for PubNubMultiGeo
                 subscribe_key : "demo",       // Subscribe Key
-                drift_check   : 5000,         // Re-calculate Time Drift
+                drift_check   : 9000,         // Re-calculate Time Drift
                 ssl           : false,        // SSL
+                activity      : activity,     // onAny Activity
                 message       : message,      // onMessage Receive
                 idle          : idle,         // onPing Idle Message
                 connect       : connect,      // onConnect
@@ -56,6 +57,13 @@ package {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function connect():void {
             trace('connected');
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // All Network Activity
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        private function activity(url:String):void {
+            //trace( 'activity: ', url );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

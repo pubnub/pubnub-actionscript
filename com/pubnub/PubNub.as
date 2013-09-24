@@ -18,9 +18,9 @@ package com.pubnub {
     import com.hurlant.util.Hex;
 
     public class PubNub {
+        public  var time_drift:Number;
         private var subscribe_timeout:Number;
         private var drift_check_rate:Number;
-        private var time_drift:Number;
         private var loader:URLStream;
         private var timetoken:String;
         private var resume_time:String;
@@ -33,6 +33,7 @@ package com.pubnub {
         private var callbacks:Object;
         private var connected:Boolean;
         private var disconnected:Boolean;
+
         private static const ALPHA_CHAR_CODES:Array = [
             48, 49, 50, 51, 52, 53, 54, 55,
             56, 57, 65, 66, 67, 68, 69, 70
@@ -58,11 +59,13 @@ package com.pubnub {
             subscribe_timeout = 310000;
             time_drift        = 0;
 
-            callbacks['message']    = settings['message'];
-            callbacks['idle']       = settings['idle'];
-            callbacks['connect']    = settings['connect'];
-            callbacks['reconnect']  = settings['reconnect'];
-            callbacks['disconnect'] = settings['disconnect'];
+            // Callbacks
+            callbacks['message']    = settings['message']    || fun();
+            callbacks['idle']       = settings['idle']       || fun();
+            callbacks['connect']    = settings['connect']    || fun();
+            callbacks['reconnect']  = settings['reconnect']  || fun();
+            callbacks['disconnect'] = settings['disconnect'] || fun();
+            callbacks['activity']   = settings['activity']   || fun();
 
             // MXing On
             add_channels(["_"]);
@@ -80,6 +83,13 @@ package com.pubnub {
             loader.addEventListener( Event.COMPLETE,        subreceived );
             loader.addEventListener( IOErrorEvent.IO_ERROR, suberror    );
             loader.addEventListener( Event.CLOSE,           suberror    );
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Simple Empty Function
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        private function fun():Function {
+            return function():Boolean { return true; };
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -168,7 +178,10 @@ package com.pubnub {
         private function remove_channels(chans:Array):void {
             for (var chan:Number = 0; chans.length > chan; chan++) {
                 var ch:String = chans[chan];
+
                 if (!(ch in channels)) continue;
+                if (ch === '_')        continue;
+
                 channels[ch].connected = false;
             }
         }
@@ -188,7 +201,7 @@ package com.pubnub {
         // Upstream Data Connection
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function subscribe_request(url:String):void {
-            //trace('url:',url);
+            callbacks['activity'](url);
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout = subscribe_timeout;
             try { loader.load(request); }
@@ -222,13 +235,13 @@ package com.pubnub {
             // Connect Callback
             if (!connected) {
                 connected = true;
-                'connect' in callbacks && callbacks['connect']();
+                callbacks['connect']();
             }
 
             // Reconnect Callback
             if (disconnected) {
                 disconnected = false;
-                'reconnect' in callbacks && callbacks['reconnect']();
+                callbacks['reconnect']();
             }
 
             // Process User Callback Per Message
@@ -258,7 +271,7 @@ package com.pubnub {
             }
 
             // Idle Callback
-            if ('idle' in callbacks) callbacks['idle'](tt);
+            callbacks['idle'](tt);
 
             // Use Resumable TT?
             var ttoken:String = tt;
@@ -280,8 +293,7 @@ package com.pubnub {
             // Disconnect Callback
             if (!disconnected) {
                 disconnected = true;
-                if ('disconnect' in callbacks)
-                    resume = callbacks['disconnect'](event) && resume;
+                resume = callbacks['disconnect'](event) && resume;
             }
 
             // Resume
@@ -318,6 +330,7 @@ package com.pubnub {
         // Basic URL Request
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function basic_request( url:String, callback:Function ):void {
+            callbacks['activity'](url);
             var loader:URLLoader   = new URLLoader()
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout    = 10000;
