@@ -303,7 +303,7 @@ package com.pubnub {
             }
 
             // Resume
-            if (resume) setTimeout( subscribe, 1000, {} );
+            setTimeout( subscribe, 1000, {} );
         }
 
 
@@ -432,7 +432,8 @@ package com.pubnub {
             cipher_key:String,
             cipherText:String
         ):String {
-            var decodedCipherText:ByteArray = Base64.decodeToByteArray(cipherText)
+            var decodedCipherText:ByteArray =
+                Base64.decodeToByteArray(cipherText);
             var key:ByteArray = hashKey(cipher_key);
             var cbc:CBCMode = new CBCMode(new AESKey(key), new PKCS5());
             cbc.IV = Hex.toArray(Hex.fromString("0123456789012345"));

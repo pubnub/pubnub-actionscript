@@ -30,7 +30,7 @@ package {
             // Publish Loop
             var pubcount:Number = 1;
             function pub():void {
-                setTimeout( pub, 1000 );
+                setTimeout( pub, 5000 );
                 pubnub.publish({ channel : 'b', message : {
                     number : pubcount++,
                     time   : (new Date()).time
@@ -85,16 +85,8 @@ package {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Disconnected (No Data)
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function disconnect(event:Object):Boolean {
-            trace( 'DISCONNECTED', event );
-            trace( 'DISCONNECTED', event );
-            trace( 'DISCONNECTED', event );
-            trace( 'DISCONNECTED', event );
-
-            // Resume Connection by Returning - TRUE -
-            // By returning false, you can resume by issuing
-            // an empty subscribe();
-            return true;
+        private function disconnect(event:Object):void {
+            trace( 'DISCONNECTED!!!!!!!!!', event );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
