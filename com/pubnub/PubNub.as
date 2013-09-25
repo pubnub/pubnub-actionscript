@@ -88,7 +88,7 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Simple Empty Function
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function fun():Function {
+        public static function fun():Function {
             return function():Boolean { return true; };
         }
 
@@ -267,7 +267,13 @@ package com.pubnub {
                 }
 
                 // Issue Message to User Callback
-                callbacks['message']( message as Object, ch, tt, age );
+                callbacks['message'](
+                    message as Object,
+                    ch,
+                    tt,
+                    age,
+                    origin
+                );
             }
 
             // Idle Callback

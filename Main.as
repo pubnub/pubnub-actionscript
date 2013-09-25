@@ -10,11 +10,12 @@ package {
 
             // Setup
             pubnub = new PubNubMultiGeo({
-                duplicate_key : "message_id", // Required for PubNubMultiGeo
+                message_id    : "message_id", // Required for PubNubMultiGeo
                 subscribe_key : "demo",       // Subscribe Key
                 drift_check   : 9000,         // Re-calculate Time Drift
                 ssl           : false,        // SSL
                 analytics     : 'analytics',  // Channel to Save Analytic on
+                error         : error,        // onErrors
                 activity      : activity,     // onAny Activity
                 message       : message,      // onMessage Receive
                 idle          : idle,         // onPing Idle Message
@@ -75,10 +76,20 @@ package {
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Error Details
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        private function error(reason:String):void {
+            trace( 'ERROR', reason );
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Disconnected (No Data)
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function disconnect(event:Object):Boolean {
-            trace( 'disconnected', event );
+            trace( 'DISCONNECTED', event );
+            trace( 'DISCONNECTED', event );
+            trace( 'DISCONNECTED', event );
+            trace( 'DISCONNECTED', event );
 
             // Resume Connection by Returning - TRUE -
             // By returning false, you can resume by issuing

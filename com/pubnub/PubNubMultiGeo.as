@@ -7,7 +7,8 @@ package com.pubnub {
         private var analytics_sync:PubNub;     // Tracking Reporter
         private var analytics_channel:String;  // Channel to Save Analytics on
         private var analytics_session:String;  // Session ID for Tracking
-        private var connections:Array;         // Connection Pool to Geo Regions
+        private var callbacks:Object;          // Callbacks References
+        private var connections:Array;         // Connection Pool GeoRegions
         private var deduplicates:Object;       // Deduplication Buffer
         private var deduplicates_la:Array;     // Deduplication Buffer Laundry
         private var duplicate_key:String;      // Inique Message ID
@@ -22,14 +23,19 @@ package com.pubnub {
         public function PubNubMultiGeo(settings:Object) {
             origin        = settings['origin'] || "ps.pubnub.com";
             msg_callback  = settings['message'];
-            duplicate_key = settings['duplicate_key'] || "id";
+            duplicate_key = settings['duplicate_key'] ||
+                            settings['message_id']    || "id";
 
-            settings['message'] = multi_message;
-
+            // Some Variable Goodness
+            callbacks       = {};
             analytics       = {};
             deduplicates    = {};
             deduplicates_la = [];
             connections     = [];
+
+            // Callbacks
+            settings['message'] = multi_message;
+            callbacks['error']  = settings['error'] || PubNub.fun();
 
             // Set Analytics Channel to Track Delivery Metrics
             analytics_channel = settings['analytics'] || 'analytics';
@@ -40,6 +46,7 @@ package com.pubnub {
 
             // Prevent Multi-callbacks
             settings['idle']       = function():void{};
+            settings['error']      = function():void{};
             settings['connect']    = function():void{};
             settings['disconnect'] = function():void{};
             settings['reconnect']  = function():void{};
@@ -96,7 +103,7 @@ package com.pubnub {
             if (!(message_id in analytics)) {
                 analytics[message_id]                     = {};
                 analytics[message_id].ages                = [];
-                //analytics[message_id].origins             = [];
+                analytics[message_id].origins             = [];
 
                 analytics[message_id].local_time = now();
                 analytics[message_id].message_id = message_id;
@@ -113,8 +120,7 @@ package com.pubnub {
             // Begin Tracking Metrics for Message
             analytics[message_id].message_count++;
             analytics[message_id].ages.push(data['age']);
-            analytics[message_id].ages.sort();
-            //analytics[message_id].origins.push();
+            analytics[message_id].origins.push(data['origin']||"closest");
         }
  
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -132,14 +138,30 @@ package com.pubnub {
             message:Object,
             channel:String,
             timetoken:String,
-            age:Number
+            age:Number,
+            origin:String
         ):void {
+            // Assume Message Object and Bail Otherwise
+            if (typeof message !== "object") {
+                callbacks['error'](
+                    'Message Payload: Not an Object: ' + message
+                );
+                return;
+            }
+
+            // Assume Message ID in Object and Bail Otherwise
+            if (!(duplicate_key in message)) {
+                callbacks['error']('Message Payload: Missing Message ID');
+                return;
+            }
+
             // Tracking Analtyics and Deliverability Metrics
             track({
                 message   : message,
                 channel   : channel,
                 timetoken : timetoken,
-                age       : age
+                age       : age,
+                origin    : origin
             });
 
             // Deduplication
