@@ -41,9 +41,6 @@ package com.pubnub {
             analytics_channel = settings['analytics'] || 'analytics';
             analytics_session = PubNub.getUID();
 
-            // First Geo
-            connect( "", settings );
-
             // Prevent Multi-callbacks
             settings['idle']       = function():void{};
             settings['error']      = function():void{};
@@ -52,11 +49,12 @@ package com.pubnub {
             settings['reconnect']  = function():void{};
 
             // Connect to a few other Geo's
-            connect( origin,                    settings ); // Geo2
-            connect( "pubsub-apac.pubnub.com",  settings ); // Geo3
-            connect( "pubsub-emea.pubnub.com",  settings ); // Geo4
-            connect( "pubsub-naatl.pubnub.com", settings ); // Geo5
-            connect( "pubsub-napac.pubnub.com", settings ); // Geo6
+            connect( "", settings );                           // Geo1 "nearest"
+            // connect( origin,                    settings ); // Geo2
+            // connect( "pubsub-apac.pubnub.com",  settings ); // Geo3
+            // connect( "pubsub-emea.pubnub.com",  settings ); // Geo4
+            connect( "pubsub-naatl.pubnub.com", settings );    // Geo5
+            connect( "pubsub-napac.pubnub.com", settings );    // Geo6
 
             // Setup PubNub Analytics Tracking Broadcaster
             analytics_sync = new PubNub({
