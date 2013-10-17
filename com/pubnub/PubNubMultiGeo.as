@@ -41,6 +41,9 @@ package com.pubnub {
             analytics_channel = settings['analytics'] || 'analytics';
             analytics_session = PubNub.getUID();
 
+            // Geo1 - Connect to a few other Geo's
+            connect( "", settings );
+
             // Prevent Multi-callbacks
             settings['idle']       = function():void{};
             settings['error']      = function():void{};
@@ -48,8 +51,6 @@ package com.pubnub {
             settings['disconnect'] = function():void{};
             settings['reconnect']  = function():void{};
 
-            // Connect to a few other Geo's
-            connect( "", settings );                           // Geo1 "nearest"
             // connect( origin,                    settings ); // Geo2
             // connect( "pubsub-apac.pubnub.com",  settings ); // Geo3
             // connect( "pubsub-emea.pubnub.com",  settings ); // Geo4
