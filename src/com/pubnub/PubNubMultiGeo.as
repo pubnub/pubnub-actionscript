@@ -21,7 +21,7 @@ package com.pubnub {
         // Init
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function PubNubMultiGeo(settings:Object) {
-            origin        = settings['origin'] || "ps.pubnub.com";
+            origin        = settings['origin']        || "ps.pubnub.com";
             msg_callback  = settings['message'];
             duplicate_key = settings['duplicate_key'] ||
                             settings['message_id']    || "id";
@@ -174,7 +174,7 @@ package com.pubnub {
                 time       : now()
             });
 
-            msg_callback( message, channel, timetoken, age );
+            msg_callback( message, channel, timetoken, age, origin );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

@@ -30,6 +30,7 @@ package com.pubnub {
         private var cipher_key:String;
         private var publish_key:String;
         private var subscribe_key:String;
+        private var uuid:String;
         private var callbacks:Object;
         private var connected:Boolean;
         private var disconnected:Boolean;
@@ -44,9 +45,10 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function PubNub(settings:Object) {
             loader            = new URLStream();
+            uuid              = settings['uuid']          || getUID();
             publish_key       = settings['publish_key']   || "demo";
             subscribe_key     = settings['subscribe_key'] || "demo";
-            cipher_key        = settings['cipher_key']    || "";
+            cipher_key        = settings['cipher_key']    || null;
             origin            = settings['origin']        || "";
             drift_check_rate  = settings['drift_check']   || 60000;
             ssl               = settings['ssl']           || false;
@@ -106,7 +108,7 @@ package com.pubnub {
             if (chans.length > 0 && loader.connected) loader.close();
 
             // Begin Stream
-            subscribe_request([
+            subscribe_request( [
                 ssl ? 'https:/' : 'http:/',
                 get_origin(),
                 'subscribe',
@@ -114,7 +116,7 @@ package com.pubnub {
                 get_channels(),
                 '0',
                 timetoken
-            ].join('/'));
+            ].join('/'), {} );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -149,7 +151,7 @@ package com.pubnub {
             ].join('/');
 
             // Publish Data
-            basic_request( url, callback );
+            basic_request( url, callback, {} );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -200,7 +202,8 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Upstream Data Connection
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        private function subscribe_request(url:String):void {
+        private function subscribe_request( uri:String, params:Object ):void {
+			var url:String = uri + build_params(params);
             callbacks['activity'](url);
             var request:URLRequest = new URLRequest(url);
             request.idleTimeout = subscribe_timeout;
@@ -214,7 +217,7 @@ package com.pubnub {
         private function subreceived(event:Event):void {
             var loader:URLStream = URLStream(event.target);
 
-            try {
+			try {            
                 var data:String = loader.readUTFBytes(loader.bytesAvailable);
                 subscribe_process(JSON.parse(data) as Array);
             }
@@ -251,7 +254,7 @@ package com.pubnub {
 
                 // Continue non-subscriptions
                 if (!(ch in channels) || !channels[ch].connected) continue;
-
+				
                 // AES256 Enabled?
                 if (cipher_key) {
                     try {
@@ -320,7 +323,7 @@ package com.pubnub {
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         public function detect_time_detla():void {
             var stime:Number = (new Date()).time;
-            basic_request( 'https://ps.pubnub.com/time/0', calculate );
+            basic_request( 'https://ps.pubnub.com/time/0', calculate, {} );
             function calculate(data:Object):void {
                 if (!data) return;
 
@@ -333,13 +336,34 @@ package com.pubnub {
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        // Generate Params for URL
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        private function build_params(params:Object):String {
+			params['uuid'] = uuid;
+			var keyvals:Array = [];
+			for (var key:String in params) {
+				keyvals.push(key + "=" + encode(params[key]));
+
+			}
+            return "?" + keyvals.join("&");
+        }
+
+        // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Basic URL Request
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        public function basic_request( url:String, callback:Function ):void {
-            callbacks['activity'](url);
+        public function basic_request(
+            uri:String,
+            callback:Function,
+            params:Object
+        ):void {		
+			var url:String         = uri + build_params(params);
             var loader:URLLoader   = new URLLoader()
             var request:URLRequest = new URLRequest(url);
+			
             request.idleTimeout    = 10000;
+			
+			// Log Activity
+			callbacks['activity'](url);
 
             // Event Handles
             loader.addEventListener( Event.COMPLETE,        basic_received );

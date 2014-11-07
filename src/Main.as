@@ -1,5 +1,6 @@
 package {
-    import com.pubnub.PubNubMultiGeo;
+    //import com.pubnub.PubNubMultiGeo;
+	import com.pubnub.PubNubMultiGeo;
     import flash.display.Sprite;
     import flash.utils.setTimeout;
 
@@ -13,7 +14,7 @@ package {
                 message_id    : "message_id", // Required for PubNubMultiGeo
                 subscribe_key : "demo",       // Subscribe Key
                 drift_check   : 9000,         // Re-calculate Time Drift
-                ssl           : false,        // SSL
+                ssl           : true,         // SSL
                 analytics     : 'analytics',  // Channel to Save Analytic on
                 error         : error,        // onErrors
                 activity      : activity,     // onAny Activity
@@ -25,13 +26,13 @@ package {
             });
 
             // Add Channels
-            pubnub.subscribe({ channels : [ 'b', 'c' ] });
+            pubnub.subscribe({ channels : [ 'bob', 'cat' ] });
 
             // Publish Loop
             var pubcount:Number = 1;
             function pub():void {
-                setTimeout( pub, 5000 );
-                pubnub.publish({ channel : 'b', message : {
+                setTimeout( pub, 1000 );
+                pubnub.publish({ channel : 'bob', message : {
                     number : pubcount++,
                     time   : (new Date()).time
                 }});
@@ -46,11 +47,11 @@ package {
             message:Object,
             channel:String,
             timetoken:String,
-            approx_age:Number
+            approx_age:Number,
+			origin:String
         ):void {
-            var age:Number = ((new Date()).time - message.data.time)/2;
             trace('message:',JSON.stringify(message));
-            trace('age (ms):',age);
+			trace('origin:',origin);
             trace('approx_age (ms):',approx_age);
         }
 
@@ -65,7 +66,7 @@ package {
         // All Network Activity
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         private function activity(url:String):void {
-            //trace( 'activity: ', url );
+            trace( 'activity: ', url );
         }
 
         // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
