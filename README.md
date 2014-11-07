@@ -48,6 +48,7 @@ To see full usage example, visit the `Main.as` file.
 var pubnub:PubNub = new PubNub({
     publish_key   : "demo",              // Publish Key
     subscribe_key : "demo",              // Subscribe Key
+    uuid          : "USER_ID",           // User ID of Connection
     drift_check   : 60000,               // Re-calculate Time Drift (ms)
     ssl           : false,               // SSL ?
     cipher_key    : 'mypass',            // AES256 Crypto Password
